@@ -8,21 +8,17 @@ import torch
 import os
 import streamlit as st
 
-# Load the dataset
 script_directory = os.path.dirname(__file__)
 file_path = os.path.join(script_directory, 'fnn_train.csv')
 dataset = pd.read_csv(file_path, delimiter=',', engine='python', 
                        on_bad_lines=lambda bad_lines: [line for line in bad_lines if '"' in line and line.endswith('"')])
 
-# Load BERT model and tokenizer
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 model = BertModel.from_pretrained('bert-base-uncased')
 
-# Initialize TF-IDF vectorizer
 vectorizer = TfidfVectorizer()
 tfidf_matrix = vectorizer.fit_transform(dataset['statement'])
 
-# Function to scrape website
 def scrape_website(url):
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -30,7 +26,7 @@ def scrape_website(url):
     text = ' '.join([p.text for p in paragraphs])
     return text
 
-# Function to find matching statement from dataset
+
 def find_matching_statement_from_dataset(query_sentence):
     query_vector = vectorizer.transform([query_sentence])
     similarity_scores = cosine_similarity(query_vector, tfidf_matrix)
@@ -40,7 +36,7 @@ def find_matching_statement_from_dataset(query_sentence):
     label = dataset.iloc[max_similarity_index]['label_fnn']
     return matching_statement, speaker, label, similarity_scores[0, max_similarity_index]
 
-# Function to get BERT embeddings
+
 def get_bert_embeddings(text):
     encoded_input = tokenizer(text, padding=True, truncation=True, return_tensors='pt')
     with torch.no_grad():
@@ -48,7 +44,7 @@ def get_bert_embeddings(text):
     embeddings = output.last_hidden_state[:, 0, :]
     return embeddings
 
-# Function to find matching statement from website
+
 def find_matching_statement_from_website(website_text, query_sentence):
     website_sentences = website_text.split('.')
     max_similarity = 0
@@ -63,26 +59,26 @@ def find_matching_statement_from_website(website_text, query_sentence):
                 matching_sentence = sentence
     return matching_sentence, max_similarity
 
-# Streamlit UI
+
 st.title("Semantic Text Matching")
 st.write("Enter a sentence and a website URL to find the most relevant statement.")
 
-# User inputs
+
 sentence_to_match = st.text_input("Enter sentence to match:")
 website_url = st.text_input("Enter website URL:")
 
 if st.button("Find Matching Statements"):
     if sentence_to_match and website_url:
-        # Scrape website
+        
         website_text = scrape_website(website_url)
         
-        # Find matching statement from dataset
+        
         matching_statement_from_dataset, speaker_from_dataset, label_from_dataset, similarity_score_from_dataset = find_matching_statement_from_dataset(sentence_to_match)
         
-        # Find matching statement from website
+      
         matching_sentence_from_website, similarity_score_from_website = find_matching_statement_from_website(website_text, sentence_to_match)
         
-        # Display results
+        
         st.subheader("Results from Dataset:")
         st.write(f"**Matching Statement:** {matching_statement_from_dataset}")
         st.write(f"**Speaker:** {speaker_from_dataset}")
